@@ -5,3 +5,4 @@ openpyxl
 pyplotz
 requests
 mplcursors
+networkx
