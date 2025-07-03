@@ -6,3 +6,4 @@ pyplotz
 requests
 mplcursors
 networkx
+networkx pyvis
