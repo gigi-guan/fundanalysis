@@ -6,6 +6,5 @@ pyplotz
 requests
 mplcursors
 networkx
-networkx pyvis
 streamlit
 plotly
