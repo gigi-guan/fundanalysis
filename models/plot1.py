@@ -10,9 +10,10 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 
-# ---------- 1. 读数据 ----------
-EXCEL = "产品分析_补全版.xlsx"
-df_all = pd.read_excel(EXCEL)
+
+# models/plot1.py
+HERE = Path(__file__).resolve().parent.parent
+EXCEL = HERE / "产品分析_补全版.xlsx"
 
 FACTORS = {
     "年化收益2025": "最近一年（含2025年）的年化",
@@ -29,18 +30,24 @@ def _to_float(s):
     return s
 
 def _load_df() -> pd.DataFrame:
+    # 如果文件不存在，就立刻抛错，方便排查
     if not EXCEL.exists():
-        raise FileNotFoundError(f"找不到文件：{EXCEL}")
+        raise FileNotFoundError(f"找不到数据文件：{EXCEL}")
+    # 全部先读成 str，更保险
     df = pd.read_excel(EXCEL, dtype=str)
+    # 映射到新的五列
     for alias, col in FACTORS.items():
+        if col not in df.columns:
+            raise ValueError(f"缺失列：{col}，请检查 Excel 表头")
         df[alias] = df[col].apply(_to_float)
+    # 至少要这几列都不为 NaN
     df = df.dropna(subset=list(FACTORS.keys()))
     return df
 
 # ---------- 2. 公开给 Streamlit 调用 ----------
 def build():
     """
-    被 app.py 动态调用。返回 Plotly Figure / DataFrame / Altair Chart…
+    被 app.py 动态调用。返回 Plotly Figure。
     """
     df = _load_df()
     if df.empty:
