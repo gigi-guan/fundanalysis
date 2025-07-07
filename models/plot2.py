@@ -4,7 +4,6 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
-from pathlib import Path
 
 # 原来的列配置 & 别名映射
 COLS_RAW = [
@@ -22,8 +21,8 @@ ALIAS_MAP = {
     "年化无风险利率（平均回报减去预期年化的绝对值）": "无风险年化",
 }
 
-# Excel 路径（按需改）
-EXCEL = Path("/Users/gigiguan/Downloads/产品分析_补全版.xlsx")
+EXCEL = "产品分析_补全版.xlsx"
+df_all = pd.read_excel(EXCEL)
 
 def _load_and_clean():
     if not EXCEL.exists():

@@ -18,7 +18,8 @@ import plotly.graph_objects as go
 # ─── 目录设置 ───────────────────────────────────────────
 BASE_DIR   = Path(__file__).resolve().parent
 PLOT_DIR   = BASE_DIR / "models"
-EXCEL_FILE = "/Users/gigiguan/Downloads/产品分析_补全版.xlsx"
+EXCEL_FILE = "产品分析_补全版.xlsx"
+df_all = pd.read_excel(EXCEL_FILE)
 
 # ─── (1) 菜单映射 ────────────────────────────────────────
 MENU_MAP = {

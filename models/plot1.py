@@ -11,8 +11,8 @@ import pandas as pd
 import plotly.express as px
 
 # ---------- 1. 读数据 ----------
-from pathlib import Path
-EXCEL = Path("/Users/gigiguan/Downloads/产品分析_补全版.xlsx")
+EXCEL = "产品分析_补全版.xlsx"
+df_all = pd.read_excel(EXCEL)
 
 FACTORS = {
     "年化收益2025": "最近一年（含2025年）的年化",

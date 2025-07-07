@@ -4,7 +4,6 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from pathlib import Path
 
 # 原来的列配置 & 别名映射
 COLS_RAW = [
@@ -23,7 +22,8 @@ ALIAS_MAP = {
 }
 
 # Excel 文件路径，请根据你的实际路径修改
-EXCEL = Path("/Users/gigiguan/Downloads/产品分析_补全版.xlsx")
+EXCEL = "产品分析_补全版.xlsx"
+df_all = pd.read_excel(EXCEL)
 
 def _clean(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     # 检查列
