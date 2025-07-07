@@ -6,11 +6,11 @@
 
 import importlib.util
 import inspect
+import traceback
 from pathlib import Path
 
 import streamlit as st
 import pandas as pd
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 import plotly.graph_objects as go
@@ -29,41 +29,63 @@ MENU_MAP = {
     "📄 查看原始数据": None,
 }
 
-# ─── (2) 先读一次全量 DataFrame，用于给 plot3/plot4 传参 ──────────
+# ─── (2) 预加载全量数据 ──────────────────────────────────
 @st.cache_data
 def load_full_df(path: str) -> pd.DataFrame:
     return pd.read_excel(path)
 
 df_all = load_full_df(EXCEL_FILE)
 
-# ─── (3) 动态 import 并智能调用 build ──────────────────────────
-def load_fig_py(mod_name: str):
+# ─── (3) 动态加载脚本 & 执行 ─────────────────────────────
+def load_plot(mod_name: str):
     file_path = PLOT_DIR / f"{mod_name}.py"
     if not file_path.exists():
         st.error(f"❌ 找不到脚本：{file_path}")
         st.stop()
 
+    # 动态 import
     spec = importlib.util.spec_from_file_location(mod_name, file_path)
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-
-    # 优先看 build()
-    if hasattr(mod, "build"):
-        sig = inspect.signature(mod.build)
-        # 如果 build 需要一个参数，就把 df_all 传进去
-        if len(sig.parameters) == 1:
-            return mod.build(df_all)
-        # 否则直接无参调用
-        else:
-            return mod.build()
-    # 回退到全局 fig
-    elif hasattr(mod, "fig"):
-        return mod.fig
-    else:
-        st.error("脚本里既没有 build() 也没有全局 fig")
+    mod  = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)
+    except Exception as e:
+        st.error(f"🚨 {mod_name}.py 执行时出错：\n```python\n{traceback.format_exc()}```")
         st.stop()
 
-# ─── (4) Streamlit 页面 ───────────────────────────────────────
+    fig = None
+
+    # 优先调用 build()
+    if hasattr(mod, "build"):
+        try:
+            fn  = mod.build
+            sig = inspect.signature(fn)
+            # build 接收一个参数就传 df_all，否则无参
+            if len(sig.parameters) == 1:
+                fig = fn(df_all)
+            else:
+                fig = fn()
+        except Exception:
+            st.error(f"🚨 {mod_name}.build() 出错：\n```python\n{traceback.format_exc()}```")
+            st.stop()
+
+    # 其次尝试全局 fig
+    elif hasattr(mod, "fig"):
+        fig = mod.fig
+
+    # 万一都没有，就尝试拿当前 plt.gcf()
+    else:
+        fig = plt.gcf()
+        if fig is None:
+            st.error(f"❌ 在 {mod_name}.py 中，既没有 build()，也没有 fig，导入后 plt.gcf() 也是 None。")
+            st.stop()
+
+    # 如果 build/fig 返回 None，也尝试 gcf()
+    if fig is None:
+        fig = plt.gcf()
+
+    return fig
+
+# ─── (4) Streamlit 页面 ─────────────────────────────────────
 st.set_page_config("投资分析可视化", layout="wide")
 st.title("📊 投资分析可视化 Demo")
 
@@ -74,30 +96,26 @@ if MENU_MAP[choice] is None:
     st.dataframe(df_all, use_container_width=True)
 
 else:
-    fig = load_fig_py(MENU_MAP[choice])
+    fig = load_plot(MENU_MAP[choice])
 
-    # 如果是 matplotlib Figure，就用 st.pyplot，并强制白底黑字
+    # Matplotlib Figure
     if isinstance(fig, Figure):
-        # 全部白底
+        # 白底+黑字，确保在深色模式下可见
         fig.patch.set_facecolor("white")
         for ax in fig.axes:
             ax.set_facecolor("white")
-            # 全部标签和标题强制黑
             ax.title.set_color("black")
             ax.xaxis.label.set_color("black")
             ax.yaxis.label.set_color("black")
-            for label in ax.get_xticklabels() + ax.get_yticklabels():
-                label.set_color("black")
-            # 如果有 colorbar
-            for cax in getattr(fig, "get_axes", lambda:[])():
-                if cax is not ax:
-                    for tick in cax.get_yticklabels() + cax.get_xticklabels():
-                        tick.set_color("black")
-                    cax.set_facecolor("white")
+            for lbl in ax.get_xticklabels() + ax.get_yticklabels():
+                lbl.set_color("black")
         st.pyplot(fig)
 
-    # 否则按 Plotly 处理
-    else:
+    # Plotly Figure
+    elif isinstance(fig, go.Figure):
         st.plotly_chart(fig, use_container_width=True)
+
+    else:
+        st.error(f"❌ 无法识别的图形类型：{type(fig)}")
 
 st.caption("© 2025 你的公司/姓名")
