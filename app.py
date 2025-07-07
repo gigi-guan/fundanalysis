@@ -118,4 +118,4 @@ else:
     else:
         st.error(f"❌ 无法识别的图形类型：{type(fig)}")
 
-st.caption("© 2025 你的公司/姓名")
+st.caption("© 2025")
